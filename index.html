@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Consistency Counter</title>
+
+<style>
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    height: 100vh;
+    background: linear-gradient(135deg, #1d2671, #c33764);
+    font-family: Arial, sans-serif;
+    color: white;
+    overflow: hidden;
+}
+
+/* ===== WINDOW ===== */
+.window {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+/* ===== TITLE BAR ===== */
+.title-bar {
+    height: 40px;
+    background: rgba(0,0,0,0.25);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 12px;
+    -webkit-app-region: drag;
+}
+
+.controls button {
+    width: 32px;
+    height: 26px;
+    border: none;
+    border-radius: 6px;
+    margin-left: 6px;
+    background: rgba(255,255,255,0.25);
+    color: white;
+    cursor: pointer;
+    -webkit-app-region: no-drag;
+}
+
+.controls button:hover {
+    background: rgba(255,255,255,0.45);
+}
+
+/* ===== CONTENT ===== */
+.app {
+    flex: 1;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    overflow-y: auto;
+}
+.app::-webkit-scrollbar {
+    width: 0;
+}
+
+/* ===== BOXES ===== */
+.box {
+    border: 2px solid rgba(255,255,255,0.4);
+    border-radius: 18px;
+    padding: 20px;
+    text-align: center;
+    background: rgba(255,255,255,0.12);
+}
+
+/* BIG COUNT */
+.count {
+    font-size: clamp(4rem, 12vw, 6rem);
+    font-weight: bold;
+}
+
+/* BIG MOTIVATION */
+.motivation {
+    font-size: clamp(1.4rem, 4vw, 2rem);
+    font-weight: bold;
+    color: #ffeb3b;
+}
+
+/* BUTTONS */
+button.action {
+    padding: 12px;
+    font-size: 1rem;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+}
+.footer {
+    margin-top: auto;
+    padding-top: 10px;
+    font-size: 0.85rem;
+    opacity: 0.75;
+    text-align: center;
+}
+
+.footer span {
+    font-weight: bold;
+    color: #ffeb3b;
+}
+
+
+.set { background: #00c853; }
+.reset { background: #ff9100; }
+.delete { background: #d50000; }
+.notify { background: #2962ff; }
+
+</style>
+</head>
+
+<body>
+
+<div class="window">
+
+    <!-- TITLE BAR -->
+    <div class="title-bar">
+        <strong>🔥 Consistency</strong>
+        <div class="controls">
+            <button onclick="minimize()">—</button>
+            <button onclick="closeApp()">✖</button>
+        </div>
+    </div>
+
+    <!-- APP CONTENT -->
+    <div class="app">
+
+        <!-- COUNTER BOX -->
+        <div class="box">
+            <div class="count" id="count">0</div>
+            <div>Days Consistent</div>
+        </div>
+
+        <!-- MOTIVATION BOX -->
+        <div class="box">
+            <div class="motivation" id="quote"></div>
+        </div>
+
+        <!-- ACTION BUTTONS -->
+        <button class="action set" onclick="manualAdd()">SET +1</button>
+        <button class="action reset" onclick="resetCount()">RESET</button>
+        <button class="action delete" onclick="deleteAll()">DELETE</button>
+        <button class="action notify" onclick="startNotifications()">Enable Notifications</button>
+        <div class="footer">
+    Developed by <span>Engineer G</span>
+</div>
+
+    </div>
+</div>
+
+
+<script>
+const { ipcRenderer } = require("electron");
+
+/* ===== WINDOW CONTROLS ===== */
+function minimize() {
+    ipcRenderer.send("window:minimize");
+}
+
+function closeApp() {
+    ipcRenderer.send("window:close");
+}
+
+/* ===== DAILY MOTIVATION ===== */
+const quotes = [
+    "Consistency beats motivation.",
+    "Small steps every day.",
+    "No zero days.",
+    "Discipline creates freedom.",
+    "Show up even when it’s hard."
+];
+
+document.getElementById("quote").innerText =
+    quotes[new Date().getDate() % quotes.length];
+
+/* ===== CONSISTENCY COUNTER ===== */
+const today = new Date().toDateString();
+let count = localStorage.getItem("count");
+let lastDate = localStorage.getItem("lastDate");
+
+function updateUI() {
+    document.getElementById("count").innerText = count || 0;
+}
+
+if (!count) {
+    count = 1;
+    localStorage.setItem("count", count);
+    localStorage.setItem("lastDate", today);
+} else if (lastDate !== today) {
+    count = parseInt(count) + 1;
+    localStorage.setItem("count", count);
+    localStorage.setItem("lastDate", today);
+}
+updateUI();
+
+/* AUTO DAILY CHECK */
+setInterval(() => {
+    const now = new Date().toDateString();
+    if (localStorage.getItem("lastDate") !== now) {
+        count = parseInt(localStorage.getItem("count")) + 1;
+        localStorage.setItem("count", count);
+        localStorage.setItem("lastDate", now);
+        updateUI();
+    }
+}, 60000);
+
+/* BUTTONS */
+function manualAdd() {
+    count++;
+    localStorage.setItem("count", count);
+    updateUI();
+}
+
+function resetCount() {
+    if (confirm("Reset counter?")) {
+        count = 0;
+        localStorage.setItem("count", count);
+        updateUI();
+    }
+}
+
+function deleteAll() {
+    if (confirm("Delete all data?")) {
+        localStorage.clear();
+        count = 0;
+        updateUI();
+    }
+}
+
+/* NOTIFICATIONS */
+let notifyInterval;
+function startNotifications() {
+    Notification.requestPermission().then(p => {
+        if (p === "granted" && !notifyInterval) {
+            notifyInterval = setInterval(() => {
+                new Notification("🔥 Stay Consistent", {
+                    body: "Your streak: " + localStorage.getItem("count")
+                });
+            }, 3600000);
+            alert("Hourly notifications enabled");
+        }
+    });
+}
+</script>
+<!-- npx electron . -->
+</body>
+</html>

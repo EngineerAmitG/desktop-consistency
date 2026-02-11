@@ -1,0 +1,25 @@
+{
+  "name": "desktop-consistency",
+  "version": "1.0.0",
+  "description": "Consistency Counter Desktop App",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder"
+  },
+  "author": "Engineer G",
+  "license": "ISC",
+  "build": {
+    "appId": "com.engineerg.consistency",
+    "productName": "Consistency App",
+    "win": {
+      "target": "nsis",
+      "icon": "icon.ico",
+      "signAndEditExecutable": false
+    }
+  },
+  "devDependencies": {
+    "electron": "^40.1.0",
+    "electron-builder": "^26.7.0"
+  }
+}
